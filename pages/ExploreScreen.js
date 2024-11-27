@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, Image, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, Image, TouchableOpacity, TextInput } from 'react-native';
 import { fetchHealthNews } from '../utils/api';
 
 const ExploreScreen = ({ navigation }) => {
-  const [news, setNews] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [news, setNews] = useState([]); // State untuk semua berita
+  const [filteredNews, setFilteredNews] = useState([]); // State untuk berita yang sudah difilter
+  const [loading, setLoading] = useState(true); // State loading
+  const [searchQuery, setSearchQuery] = useState(''); // State untuk search query
 
   useEffect(() => {
     const getNews = async () => {
       try {
         const data = await fetchHealthNews(); // Fetch health news from API
         setNews(data); // Set fetched news data to state
+        setFilteredNews(data); // Set filtered news data (initially same as all news)
       } catch (error) {
         console.error('Error fetching news:', error);
       } finally {
@@ -20,6 +23,21 @@ const ExploreScreen = ({ navigation }) => {
 
     getNews();
   }, []);
+
+  const handleSearch = (query) => {
+    setSearchQuery(query);
+    if (query) {
+      // Filter news based on search query
+      const filtered = news.filter(item => 
+        item.title.toLowerCase().includes(query.toLowerCase()) ||
+        item.description.toLowerCase().includes(query.toLowerCase())
+      );
+      setFilteredNews(filtered);
+    } else {
+      // If search query is empty, show all news
+      setFilteredNews(news);
+    }
+  };
 
   const renderNewsItem = ({ item }) => (
     <TouchableOpacity
@@ -39,7 +57,7 @@ const ExploreScreen = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Explore Health News</Text>
-      
+
       {/* Button to navigate to Health category */}
       <TouchableOpacity
         onPress={() => navigation.navigate('Detail', { category: 'Health' })} // Navigate to Health category
@@ -48,12 +66,20 @@ const ExploreScreen = ({ navigation }) => {
         <Text style={styles.categoryText}>Go to Health News</Text>
       </TouchableOpacity>
 
+      {/* Search bar */}
+      <TextInput
+        style={styles.searchInput}
+        placeholder="Search news..."
+        value={searchQuery}
+        onChangeText={handleSearch} // Update search query
+      />
+
       {/* Show loading indicator or news list */}
       {loading ? (
         <ActivityIndicator size="large" color="#FFA500" />
       ) : (
         <FlatList
-          data={news}
+          data={filteredNews}
           keyExtractor={(item, index) => index.toString()}
           renderItem={renderNewsItem}
           contentContainerStyle={styles.listContainer}
@@ -75,6 +101,15 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 16,
     color: '#333',
+  },
+  searchInput: {
+    height: 40,
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 8,
+    marginBottom: 16,
+    paddingLeft: 10,
+    fontSize: 16,
   },
   listContainer: {
     paddingBottom: 16,
